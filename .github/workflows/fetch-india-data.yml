@@ -1,0 +1,58 @@
+name: Fetch India Market Data
+
+on:
+  workflow_dispatch:  # Manual trigger only
+  
+jobs:
+  fetch-india-data:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: feature/india-market-testing
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      
+      - name: Install dependencies
+        run: |
+          pip install yfinance pandas numpy xgboost joblib scipy scikit-learn
+      
+      - name: Fetch Indian market data
+        continue-on-error: true
+        run: |
+          python india/fetch_india_data.py || true
+      
+      - name: Upload India data cache
+        uses: actions/upload-artifact@v4
+        with:
+          name: india-market-data
+          path: india/data/india_cache.db
+          retention-days: 90
+          if-no-files-found: warn
+      
+      - name: Show cache stats
+        continue-on-error: true
+        run: |
+          ls -lh india/data/ || echo "No data directory"
+          python -c "
+          import sqlite3
+          import os
+          db_path = 'india/data/india_cache.db'
+          if os.path.exists(db_path):
+              conn = sqlite3.connect(db_path)
+              try:
+                  cursor = conn.execute('SELECT COUNT(DISTINCT ticker), COUNT(*) FROM price_data')
+                  tickers, rows = cursor.fetchone()
+                  print(f'Cached: {tickers} tickers, {rows:,} rows')
+              except Exception as e:
+                  print(f'Error: {e}')
+              conn.close()
+          else:
+              print('No cache file found')
+          "
+

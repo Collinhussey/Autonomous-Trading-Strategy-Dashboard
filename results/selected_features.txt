@@ -1,0 +1,16 @@
+# Selected Features (importance >= 3%)
+BB_PctB: 0.1158
+VWAP_Dev: 0.0939
+Vol_Ratio: 0.0935
+Return_1d: 0.0852
+Return_5d: 0.0833
+MACD_hist: 0.0696
+Volume_Ratio: 0.0634
+MACD: 0.0630
+RSI: 0.0604
+ATR_Pct: 0.0560
+MACD_signal: 0.0508
+Dist_SMA50: 0.0499
+OBV_Momentum: 0.0427
+Dist_SMA200: 0.0364
+BB_Width: 0.0361

@@ -1,0 +1,119 @@
+name: Daily Cache Refresh
+
+# Runs daily at 5 PM ET (9 PM UTC) to update market data cache
+# Must complete BEFORE trading workflows run (9:30 PM UTC)
+
+on:
+  schedule:
+    - cron: '0 21 * * 1-5'  # Mon-Fri at 9 PM UTC (before trading workflows)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh-cache:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Restore Market Data Cache
+        uses: actions/cache@v4
+        with:
+          path: data/market.db
+          key: market-data-v3-${{ github.run_id }}
+          restore-keys: |
+            market-data-v3-
+
+      - name: Check Cache Status
+        run: |
+          if [ -f data/market.db ]; then
+            echo "✅ Cache restored: $(du -h data/market.db)"
+          else
+            echo "⚠️ No cache found, will create fresh"
+            mkdir -p data
+          fi
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: |
+          pip install pandas yfinance
+
+      - name: Refresh Cache (Incremental)
+        run: |
+          python -c "
+          import sys
+          import os
+          sys.path.insert(0, '.')
+          from src.data.loader import fetch_data
+          from src.data.cache import get_cache
+          
+          # Load tickers
+          with open('data/sp500_tickers.txt', 'r') as f:
+              tickers = [line.strip() for line in f if line.strip()]
+          
+          # Check if cache has data
+          cache = get_cache()
+          cached_tickers = cache.get_cached_tickers()
+          
+          if len(cached_tickers) < 100:
+              # Cache is empty/broken - fetch full 5 year history (ML needs more data)
+              print(f'⚠️  Cache has only {len(cached_tickers)} tickers, fetching full 5y history...')
+              period = '5y'
+          else:
+              # Cache exists - just fetch recent updates
+              print(f'✅ Cache has {len(cached_tickers)} tickers, fetching incremental updates...')
+              period = '1mo'
+          
+          print(f'📊 Refreshing cache for {len(tickers)} tickers (period={period})...')
+          data = fetch_data(tickers, period=period, use_cache=True)
+          print(f'✅ Cache updated with {len(data)} tickers')
+          "
+
+      - name: Save Market Data Cache
+        uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: data/market.db
+          key: market-data-v3-${{ github.run_id }}
+
+      - name: Upload to S3 (Lambda source of truth)
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-west-2
+        run: |
+          pip install awscli
+          
+          # Validate market.db size (should be > 100MB)
+          DB_SIZE=$(stat -c%s data/market.db 2>/dev/null || stat -f%z data/market.db)
+          echo "market.db size: $DB_SIZE bytes"
+          
+          if [ "$DB_SIZE" -lt 100000000 ]; then
+            echo "ERROR: market.db too small ($DB_SIZE bytes), skipping S3 upload"
+            exit 1
+          fi
+          
+          # Upload to S3
+          aws s3 cp data/market.db s3://paper-trader-data-pat0216/market.db
+          aws s3 cp data/sp500_tickers.txt s3://paper-trader-data-pat0216/sp500_tickers.txt
+          echo "Uploaded market.db and sp500_tickers.txt to S3"
+
+      # NOTE: Snapshot computation moved to snapshot_update.yml (runs after Lambda trades)
+      # This avoids git conflicts between cache_refresh, Lambda, and snapshot updates
+
+      - name: Commit Cache Timestamp
+        run: |
+          git config user.name "PAT0216"
+          git config user.email "69978508+PAT0216@users.noreply.github.com"
+          date > .cache_last_updated
+          git add .cache_last_updated
+          git diff --cached --quiet || git commit -m "Cache refreshed $(date +%Y-%m-%d)"
+          git push origin main || echo "No changes to push"
+

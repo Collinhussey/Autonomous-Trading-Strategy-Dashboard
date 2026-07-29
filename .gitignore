@@ -1,0 +1,76 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.env
+.ipynb_checkpoints/
+
+# Testing
+.pytest_cache/
+htmlcov/
+.coverage
+*.cover
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Misc
+*.log
+*.tmp
+
+# Data files (except ledger.csv which tracks trades)
+# ledger.csv - Tracked: Bot commits trades back to repo
+# models/ - Tracked: Bot needs trained model
+
+# Data files
+data/*.db
+data/universe_cache.csv
+
+# Research papers (not needed for trading)
+*.pdf
+ML_stock_strategy_research_paper*.md
+docs/SENTINULL_PLAN.md
+docs/QUANT_UPGRADE_ROADMAP.md
+docs/STRATEGY_FEATURES_GUIDE.md
+.archive/
+.sentinull/
+.data_sentinull/
+.config_sentinull.yaml
+.tests_sentinull/
+
+# Session progress notes
+.agent/
+progress.md
+
+# === Secrets & credentials (auto-added by batch manager) ===
+.env
+*.env
+*.env.*
+.env.local
+.env.production
+.env.staging
+*.pem
+*.key
+*.p12
+*.pfx
+secrets.json
+secrets.yaml
+secrets.yml
+credentials.json
+service-account*.json
+terraform.tfvars
+terraform.tfvars.json
+.kubeconfig
+kubeconfig
+# === End secrets ===

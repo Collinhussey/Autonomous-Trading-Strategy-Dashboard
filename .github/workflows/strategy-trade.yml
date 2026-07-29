@@ -1,0 +1,150 @@
+name: Strategy Trade (Reusable)
+
+on:
+  workflow_call:
+    inputs:
+      strategy:
+        description: 'Strategy name (ml, lstm, momentum)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  trade:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Restore Market Data Cache
+        uses: actions/cache@v4
+        with:
+          path: data/market.db
+          key: market-data-v3-${{ github.run_id }}
+          restore-keys: market-data-v3-
+
+      - name: Free Disk Space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost
+          df -h
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: docker-${{ runner.os }}-${{ hashFiles('Dockerfile') }}
+          restore-keys: docker-${{ runner.os }}-
+
+      - name: Build Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          load: true
+          tags: paper-trader:latest
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+
+      - name: Run Strategy
+        run: |
+          docker run --rm -e GITHUB_ACTIONS=true -v ${{ github.workspace }}:/app paper-trader:latest \
+            conda run --no-capture-output -n paper-trader \
+            python main.py --mode trade --strategy ${{ inputs.strategy }} --portfolio ${{ inputs.strategy }}
+
+      - name: Update Snapshot
+        run: |
+          docker run --rm -e GITHUB_ACTIONS=true -v ${{ github.workspace }}:/app paper-trader:latest \
+            conda run --no-capture-output -n paper-trader \
+            python scripts/utils/compute_portfolio_snapshot.py --strategy ${{ inputs.strategy }}
+
+      - name: Push Changes
+        run: |
+          git config user.name "PAT0216"
+          git config user.email "69978508+PAT0216@users.noreply.github.com"
+          git add -A
+          
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          
+          BRANCH="${{ github.ref_name }}"
+          git commit -m "${{ inputs.strategy }}: Daily trade $(date +%Y-%m-%d)"
+          
+          for i in 1 2 3; do
+            echo "=== Push attempt $i ==="
+            
+            # Try simple push first
+            if git push origin "$BRANCH"; then
+              echo "Push successful!"
+              exit 0
+            fi
+            
+            echo "Push failed, pulling latest changes..."
+            
+            # Fetch and check for conflicts
+            git fetch origin "$BRANCH"
+            
+            # Try rebase
+            if git rebase origin/"$BRANCH"; then
+              echo "Rebase successful, retrying push..."
+              continue
+            fi
+            
+            echo "Rebase conflict detected, resolving..."
+            
+            # Abort the failed rebase
+            git rebase --abort 2>/dev/null || true
+            
+            # Reset to our commit
+            git reset --soft HEAD~1
+            
+            # Stash our changes
+            git stash push -m "strategy-changes"
+            
+            # Pull latest from remote (clean)
+            git pull origin "$BRANCH"
+            
+            # Pop stash, preferring ours for conflicts
+            git stash pop || {
+              # If stash pop fails due to conflict, resolve it
+              echo "Stash conflict, resolving with strategy preference..."
+              
+              # For the consolidated snapshot, accept theirs (we'll regenerate)
+              git checkout --theirs data/portfolio_snapshot.json 2>/dev/null || true
+              
+              # For strategy-specific files, accept ours (our changes are what we want)
+              git checkout --ours "data/ledgers/ledger_${{ inputs.strategy }}.csv" 2>/dev/null || true
+              git checkout --ours "data/snapshots/${{ inputs.strategy }}.json" 2>/dev/null || true
+              
+              git add -A
+              git reset  # Unstage to allow re-consolidate
+            }
+            
+            # Re-consolidate the snapshot to include all strategies
+            echo "Re-consolidating portfolio snapshot..."
+            docker run --rm -e GITHUB_ACTIONS=true -v ${{ github.workspace }}:/app paper-trader:latest \
+              conda run --no-capture-output -n paper-trader \
+              python scripts/utils/compute_portfolio_snapshot.py --consolidate 2>/dev/null || true
+            
+            # Re-commit all changes
+            git add -A
+            git commit -m "${{ inputs.strategy }}: Daily trade $(date +%Y-%m-%d) [resolved]" || true
+            
+            sleep 5
+          done
+          
+          echo "Failed to push after 3 attempts"
+          exit 1
+
+      - name: Cleanup Docker cache
+        if: always()
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache 2>/dev/null || true

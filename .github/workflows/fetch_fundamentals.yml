@@ -1,0 +1,60 @@
+name: Fetch Historical Fundamentals (yfinance)
+
+on:
+  workflow_dispatch:
+    inputs:
+      start_index:
+        description: 'Starting ticker index (0-499)'
+        required: false
+        default: '0'
+      max_tickers:
+        description: 'Max tickers to process (recommend 200-300 per run)'
+        required: false
+        default: '250'
+
+jobs:
+  fetch-fundamentals:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          pip install pandas yfinance lxml
+      
+      - name: Fetch historical fundamentals
+        run: |
+          python scripts/utils/fetch_fundamentals.py
+        env:
+          MAX_TICKERS: ${{ github.event.inputs.max_tickers || '250' }}
+          START_INDEX: ${{ github.event.inputs.start_index || '0' }}
+      
+      - name: Display summary
+        run: |
+          echo "=== FUNDAMENTALS FETCH SUMMARY ==="
+          if [ -f data/fundamentals_metadata.json ]; then
+            cat data/fundamentals_metadata.json
+          fi
+          echo ""
+          echo "=== FILE SIZES ==="
+          ls -lh data/fundamentals*.csv data/fundamentals*.json 2>/dev/null || echo "No files"
+          echo ""
+          echo "=== SAMPLE DATA (first 3 rows) ==="
+          head -4 data/fundamentals_historical.csv 2>/dev/null || echo "No data"
+      
+      - name: Upload fundamentals as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fundamentals-${{ github.event.inputs.start_index || '0' }}-${{ github.event.inputs.max_tickers || '250' }}
+          path: |
+            data/fundamentals_historical.csv
+            data/fundamentals_metadata.json
+          retention-days: 30

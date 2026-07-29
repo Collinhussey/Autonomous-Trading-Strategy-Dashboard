@@ -1,0 +1,20 @@
+{
+  "timestamp": "2026-07-17T23:04:30.005645Z",
+  "price_date": "2026-07-17",
+  "initial_capital": 10000,
+  "strategy": "momentum",
+  "value": 16390.46,
+  "return_pct": 63.9,
+  "cash": 2000.97,
+  "holdings": {
+    "LRCX": 6,
+    "WBD": 41,
+    "NEM": 10,
+    "MU": 4,
+    "STX": 3,
+    "AVGO": 4,
+    "WDC": 6,
+    "NVDA": 2
+  },
+  "positions": 8
+}

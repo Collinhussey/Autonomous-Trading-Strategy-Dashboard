@@ -1,0 +1,81 @@
+# -------------------------------------------------------------------
+# Paper Trader Configuration
+# -------------------------------------------------------------------
+
+# 🌐 Universe Settings (NEW - Phase 4)
+# Options: 'config' (use tickers below), 'sp500' (fetch from Wikipedia)
+universe:
+  type: "sp500"   # Use full S&P 500 (~500 stocks)
+  # type: "config"  # Use manual tickers list below
+
+# 📊 Manual Ticker List (used when universe.type = 'config')
+# Also serves as fallback if S&P 500 fetch fails
+tickers:
+  # Indices
+  - SPY
+  - QQQ
+  - IWM
+  - DIA
+  # Tech / Growth
+  - AAPL
+  - MSFT
+  - NVDA
+  - GOOGL
+  - AMZN
+  - META
+  - TSLA
+  - AVGO
+  - AMD
+  - CRM
+  - NFLX
+  # Finance
+  - JPM
+  - V
+  - MA
+  - BAC
+  - BRK-B
+  # Consumer / Retail
+  - HD
+  - COST
+  - WMT
+  - PG
+  - KO
+  - PEP
+  - DIS
+  # Healthcare / Pharma
+  - UNH
+  - JNJ
+  - LLY
+  - MRK
+  # Energy / Industrial
+  - XOM
+  - CVX
+  - BA
+  - CAT
+
+# ⚙️ Model Settings
+model:
+  training_period: "max"   # Maximum history (8+ years) for robust backtesting
+  retrain_daily: false    # Use pre-trained model (retrain separately via train mode)
+  threshold_buy: 0.55     # Probability threshold to trigger a BUY
+  threshold_sell: 0.45    # Probability threshold to trigger a SELL
+
+# 💰 Portfolio Settings
+portfolio:
+  initial_cash: 10000.0   # Starting balance for fresh ledger
+  min_cash_buffer: 200.0  # Keep 2% of initial capital on hand
+
+# 🛡️ Risk Management Settings (NEW - Phase 7)
+risk:
+  # Position-level stop-loss: sell if position drops X% from entry
+  # A/B tested: 15% is balanced default (protects capital, lets winners run)
+  stop_loss_pct: 0.15       # 15% stop-loss (triggers automatic sell)
+  
+  # Portfolio drawdown controls
+  drawdown_warning: 0.15  # At -15%: reduce new position sizes by 50%
+  drawdown_halt: 0.20     # At -20%: stop new buys entirely
+  drawdown_liquidate: 0.25  # At -25%: force liquidate to 50% cash
+  
+  # Position limits
+  max_position_pct: 0.15  # Max 15% of portfolio in one stock
+  max_sector_pct: 0.30    # Max 30% in one sector
