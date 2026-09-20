@@ -5,6 +5,7 @@
     "MACD_signal",
     "Return_1d",
     "Return_5d",
+    "OBV_Momentum",
     "Volume_Ratio",
     "VWAP_Dev",
     "ATR_Pct",
@@ -28,22 +29,22 @@
     "BB_PctB",
     "Vol_Ratio"
   ],
-  "training_date": "2026-09-13T22:22:57.860249",
-  "training_samples": 525334,
+  "training_date": "2026-09-20T22:23:16.439288",
+  "training_samples": 527331,
   "xgboost_version": "2.0.3",
   "prediction_stats": {
-    "mean": 0.0006940037710592151,
-    "std": 0.00208973023109138,
-    "min": -0.06861735135316849,
-    "max": 0.11348460614681244,
+    "mean": 0.0006789362523704767,
+    "std": 0.0020745820365846157,
+    "min": -0.07700147479772568,
+    "max": 0.11865871399641037,
     "expected_range": [
       -0.1,
       0.1
     ]
   },
   "cv_metrics": {
-    "avg_rmse": 0.021354578332673603,
-    "avg_dir_accuracy": 0.5056798583747358,
-    "avg_spearman": 0.01569787540824745
+    "avg_rmse": 0.02134266354976752,
+    "avg_dir_accuracy": 0.5055001820498817,
+    "avg_spearman": 0.014983103814941001
   }
 }
