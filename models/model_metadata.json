@@ -1,8 +1,12 @@
 {
   "selected_features": [
+    "RSI",
     "MACD",
+    "Return_1d",
     "Return_5d",
     "VWAP_Dev",
+    "ATR_Pct",
+    "BB_PctB",
     "Vol_Ratio"
   ],
   "all_features": [
@@ -22,22 +26,22 @@
     "BB_PctB",
     "Vol_Ratio"
   ],
-  "training_date": "2026-10-25T22:28:39.311583",
-  "training_samples": 502173,
+  "training_date": "2026-11-01T23:33:00.637148",
+  "training_samples": 494371,
   "xgboost_version": "2.0.3",
   "prediction_stats": {
-    "mean": 0.0006985071813687682,
-    "std": 0.0014026142889633775,
-    "min": -0.1051652804017067,
-    "max": 0.07970134168863297,
+    "mean": 0.0007070259307511151,
+    "std": 0.002021110849454999,
+    "min": -0.07793035358190536,
+    "max": 0.12994202971458435,
     "expected_range": [
       -0.1,
       0.1
     ]
   },
   "cv_metrics": {
-    "avg_rmse": 0.021481219485681748,
-    "avg_dir_accuracy": 0.5066443634625724,
-    "avg_spearman": 0.013169890359995166
+    "avg_rmse": 0.0214698231952428,
+    "avg_dir_accuracy": 0.5076303173736271,
+    "avg_spearman": 0.015217141776046831
   }
 }
